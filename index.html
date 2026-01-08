@@ -44,6 +44,11 @@
     </div>
 
     <div class="form-group">
+        <label>Imagen (Foto):</label>
+        <input type="file" id="imagenInput" accept="image/*">
+    </div>
+
+    <div class="form-group">
         <label>Valoración de la Prueba (Qué evalúa):</label>
         <textarea id="valoracion" placeholder="Describe qué evalúa la prueba..."></textarea>
     </div>
@@ -54,11 +59,6 @@
             <option value="NEGATIVA">NEGATIVA</option>
             <option value="POSITIVA">POSITIVA</option>
         </select>
-    </div>
-
-    <div class="form-group">
-        <label>Imagen (Foto):</label>
-        <input type="file" id="imagenInput" accept="image/*">
     </div>
 
     <div class="btn-container">
@@ -72,9 +72,9 @@
             <thead>
                 <tr>
                     <th>Nombre de la Prueba</th>
-                    <th>Valoración</th>
-                    <th>Prueba a Compañeros</th>
                     <th>Imagen</th>
+                    <th>Valoración de la Prueba</th>
+                    <th>Prueba a Compañeros</th>
                 </tr>
             </thead>
             <tbody id="cuerpoTabla">
@@ -84,16 +84,14 @@
 </div>
 
 <script>
-    // Aquí guardaremos los datos en memoria antes de crear el Excel
     let datosParaExcel = [];
 
-    // Función para leer la imagen y convertirla a Base64 (formato que entiende Excel)
     function leerImagen(input) {
         return new Promise((resolve, reject) => {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
-                    resolve(e.target.result); // Devuelve la imagen en base64
+                    resolve(e.target.result); 
                 }
                 reader.readAsDataURL(input.files[0]);
             } else {
@@ -113,10 +111,9 @@
             return;
         }
 
-        // Procesar imagen
         const imagenBase64 = await leerImagen(inputImg);
 
-        // 1. Agregar a la memoria (para el Excel)
+        // Guardar datos
         datosParaExcel.push({
             nombre: nombre,
             valoracion: valoracion,
@@ -124,15 +121,15 @@
             imagen: imagenBase64
         });
 
-        // 2. Agregar a la tabla visual (HTML)
+        // Actualizar Tabla Visual (Orden: Nombre, Foto, Valoración, Resultado)
         const tbody = document.getElementById('cuerpoTabla');
         const nuevaFila = tbody.insertRow();
         
         nuevaFila.innerHTML = `
             <td>${nombre}</td>
+            <td style="text-align:center;">${imagenBase64 ? `<img src="${imagenBase64}" class="img-preview">` : 'Sin imagen'}</td>
             <td>${valoracion}</td>
             <td style="text-align:center; font-weight:bold;">${resultado}</td>
-            <td>${imagenBase64 ? `<img src="${imagenBase64}" class="img-preview">` : 'Sin imagen'}</td>
         `;
 
         // Limpiar campos
@@ -144,65 +141,58 @@
 
     async function descargarExcel() {
         if (datosParaExcel.length === 0) {
-            alert("No hay datos para descargar. Agrega al menos una prueba.");
+            alert("No hay datos para descargar.");
             return;
         }
 
-        // Crear un nuevo libro de Excel
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Pruebas');
 
-        // Definir columnas y anchos
+        // DEFINICIÓN DE COLUMNAS (NUEVO ORDEN)
+        // 1. Nombre, 2. Imagen, 3. Valoración, 4. Resultado
         worksheet.columns = [
             { header: 'NOMBRE DE LA PRUEBA', key: 'nombre', width: 25 },
-            { header: 'VALORACIÓN DE LA PRUEBA', key: 'valoracion', width: 50 },
-            { header: 'PRUEBA A COMPAÑEROS', key: 'resultado', width: 25 },
-            { header: 'IMAGEN', key: 'imagen', width: 20 }
+            { header: 'IMAGEN', key: 'imagen', width: 25 },           // Columna B
+            { header: 'VALORACIÓN DE LA PRUEBA', key: 'valoracion', width: 50 }, // Columna C
+            { header: 'PRUEBA A COMPAÑEROS', key: 'resultado', width: 25 }       // Columna D
         ];
 
-        // Estilar los Encabezados (Color Aqua/Turquesa)
+        // Estilar Encabezados
         const headerRow = worksheet.getRow(1);
         headerRow.height = 40;
         headerRow.eachCell((cell) => {
             cell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: 'FF5DE2E7' } // Color similar a tu imagen
+                fgColor: { argb: 'FF5DE2E7' } 
             };
             cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
-            cell.border = {
-                top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
-            };
+            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
         });
 
-        // Agregar filas con datos e imágenes
+        // Agregar filas
         for (let i = 0; i < datosParaExcel.length; i++) {
             const data = datosParaExcel[i];
+            
+            // Mapeo de datos a columnas (clave debe coincidir con worksheet.columns)
             const row = worksheet.addRow({
                 nombre: data.nombre,
+                imagen: '', // Espacio vacío para la foto
                 valoracion: data.valoracion,
-                resultado: data.resultado,
-                imagen: '' // La imagen se inserta aparte
+                resultado: data.resultado
             });
 
-            // Altura de fila para que quepa la foto
             row.height = 100; 
 
-            // Estilos de celdas (Color crema de fondo, bordes, ajuste de texto)
-            row.eachCell((cell, colNumber) => {
+            // Estilos generales de celda
+            row.eachCell((cell) => {
                 cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFFDF5E6' } // Color crema claro
-                };
-                cell.border = {
-                    top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
-                };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDF5E6' } };
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             });
 
-            // Insertar la imagen si existe
+            // Insertar Imagen en la Columna 2 (Índice 1)
             if (data.imagen) {
                 const imageId = workbook.addImage({
                     base64: data.imagen,
@@ -210,19 +200,14 @@
                 });
 
                 worksheet.addImage(imageId, {
-                    tl: { col: 3, row: row.number - 1 }, // Columna 3 es la D (indice empieza en 0) -> D=3
-                    br: { col: 4, row: row.number },
+                    // Columna 1 = B (0 es A, 1 es B)
+                    tl: { col: 1.1, row: row.number - 0.9 }, 
+                    br: { col: 1.9, row: row.number - 0.1 },
                     editAs: 'oneCell'
-                });
-                // Ajuste fino para centrar la imagen (padding visual)
-                worksheet.addImage(imageId, {
-                    tl: { col: 3.1, row: row.number - 0.9 }, 
-                    br: { col: 3.9, row: row.number - 0.1 }
                 });
             }
         }
 
-        // Generar archivo y descargar
         const buffer = await workbook.xlsx.writeBuffer();
         saveAs(new Blob([buffer]), "Pruebas_Fisioterapia.xlsx");
     }
