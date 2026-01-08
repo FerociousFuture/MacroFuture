@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Pruebas Médicas</title>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        textarea { height: 80px; resize: vertical; }
+        
+        .btn-container { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        .btn-add { background-color: #4CAF50; color: white; }
+        .btn-add:hover { background-color: #45a049; }
+        .btn-download { background-color: #008CBA; color: white; }
+        .btn-download:hover { background-color: #007bb5; }
+
+        /* Estilo de la tabla de previsualización */
+        .preview-area { margin-top: 30px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background-color: #5DE2E7; color: white; padding: 12px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #ccc;}
+        td { border: 1px solid #ccc; padding: 10px; vertical-align: middle; background-color: #FDF5E6; }
+        .img-preview { width: 100px; height: auto; display: block; margin: 0 auto; border-radius: 4px; }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>Registro de Pruebas Fisioterapéuticas</h1>
+    
+    <div class="form-group">
+        <label>Nombre de la Prueba:</label>
+        <input type="text" id="nombre" placeholder="Ej: Signo de Bonnet">
+    </div>
+
+    <div class="form-group">
+        <label>Valoración de la Prueba (Qué evalúa):</label>
+        <textarea id="valoracion" placeholder="Describe qué evalúa la prueba..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Prueba a Compañeros:</label>
+        <select id="resultado">
+            <option value="NEGATIVA">NEGATIVA</option>
+            <option value="POSITIVA">POSITIVA</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Imagen (Foto):</label>
+        <input type="file" id="imagenInput" accept="image/*">
+    </div>
+
+    <div class="btn-container">
+        <button class="btn-add" onclick="agregarFila()">➕ Agregar a la Lista</button>
+        <button class="btn-download" onclick="descargarExcel()">📥 Descargar Excel Final</button>
+    </div>
+
+    <div class="preview-area">
+        <h3>Previsualización:</h3>
+        <table id="tablaPreview">
+            <thead>
+                <tr>
+                    <th>Nombre de la Prueba</th>
+                    <th>Valoración</th>
+                    <th>Prueba a Compañeros</th>
+                    <th>Imagen</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpoTabla">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Aquí guardaremos los datos en memoria antes de crear el Excel
+    let datosParaExcel = [];
+
+    // Función para leer la imagen y convertirla a Base64 (formato que entiende Excel)
+    function leerImagen(input) {
+        return new Promise((resolve, reject) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    resolve(e.target.result); // Devuelve la imagen en base64
+                }
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                resolve(null);
+            }
+        });
+    }
+
+    async function agregarFila() {
+        const nombre = document.getElementById('nombre').value;
+        const valoracion = document.getElementById('valoracion').value;
+        const resultado = document.getElementById('resultado').value;
+        const inputImg = document.getElementById('imagenInput');
+
+        if (!nombre || !valoracion) {
+            alert("Por favor completa el nombre y la valoración.");
+            return;
+        }
+
+        // Procesar imagen
+        const imagenBase64 = await leerImagen(inputImg);
+
+        // 1. Agregar a la memoria (para el Excel)
+        datosParaExcel.push({
+            nombre: nombre,
+            valoracion: valoracion,
+            resultado: resultado,
+            imagen: imagenBase64
+        });
+
+        // 2. Agregar a la tabla visual (HTML)
+        const tbody = document.getElementById('cuerpoTabla');
+        const nuevaFila = tbody.insertRow();
+        
+        nuevaFila.innerHTML = `
+            <td>${nombre}</td>
+            <td>${valoracion}</td>
+            <td style="text-align:center; font-weight:bold;">${resultado}</td>
+            <td>${imagenBase64 ? `<img src="${imagenBase64}" class="img-preview">` : 'Sin imagen'}</td>
+        `;
+
+        // Limpiar campos
+        document.getElementById('nombre').value = '';
+        document.getElementById('valoracion').value = '';
+        document.getElementById('imagenInput').value = '';
+        document.getElementById('nombre').focus();
+    }
+
+    async function descargarExcel() {
+        if (datosParaExcel.length === 0) {
+            alert("No hay datos para descargar. Agrega al menos una prueba.");
+            return;
+        }
+
+        // Crear un nuevo libro de Excel
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Pruebas');
+
+        // Definir columnas y anchos
+        worksheet.columns = [
+            { header: 'NOMBRE DE LA PRUEBA', key: 'nombre', width: 25 },
+            { header: 'VALORACIÓN DE LA PRUEBA', key: 'valoracion', width: 50 },
+            { header: 'PRUEBA A COMPAÑEROS', key: 'resultado', width: 25 },
+            { header: 'IMAGEN', key: 'imagen', width: 20 }
+        ];
+
+        // Estilar los Encabezados (Color Aqua/Turquesa)
+        const headerRow = worksheet.getRow(1);
+        headerRow.height = 40;
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF5DE2E7' } // Color similar a tu imagen
+            };
+            cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = {
+                top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
+            };
+        });
+
+        // Agregar filas con datos e imágenes
+        for (let i = 0; i < datosParaExcel.length; i++) {
+            const data = datosParaExcel[i];
+            const row = worksheet.addRow({
+                nombre: data.nombre,
+                valoracion: data.valoracion,
+                resultado: data.resultado,
+                imagen: '' // La imagen se inserta aparte
+            });
+
+            // Altura de fila para que quepa la foto
+            row.height = 100; 
+
+            // Estilos de celdas (Color crema de fondo, bordes, ajuste de texto)
+            row.eachCell((cell, colNumber) => {
+                cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFDF5E6' } // Color crema claro
+                };
+                cell.border = {
+                    top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
+                };
+            });
+
+            // Insertar la imagen si existe
+            if (data.imagen) {
+                const imageId = workbook.addImage({
+                    base64: data.imagen,
+                    extension: 'png',
+                });
+
+                worksheet.addImage(imageId, {
+                    tl: { col: 3, row: row.number - 1 }, // Columna 3 es la D (indice empieza en 0) -> D=3
+                    br: { col: 4, row: row.number },
+                    editAs: 'oneCell'
+                });
+                // Ajuste fino para centrar la imagen (padding visual)
+                worksheet.addImage(imageId, {
+                    tl: { col: 3.1, row: row.number - 0.9 }, 
+                    br: { col: 3.9, row: row.number - 0.1 }
+                });
+            }
+        }
+
+        // Generar archivo y descargar
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), "Pruebas_Fisioterapia.xlsx");
+    }
+</script>
+
+</body>
+</html>
