@@ -17,16 +17,33 @@
         
         .btn-container { display: flex; gap: 10px; margin-top: 20px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
-        .btn-add { background-color: #4CAF50; color: white; }
-        .btn-add:hover { background-color: #45a049; }
-        .btn-download { background-color: #008CBA; color: white; }
-        .btn-download:hover { background-color: #007bb5; }
+        
+        /* Botones con colores actualizados */
+        .btn-add { background-color: #8E44AD; color: white; } /* Morado botón */
+        .btn-add:hover { background-color: #732d91; }
+        .btn-download { background-color: #2c3e50; color: white; }
+        .btn-download:hover { background-color: #1a252f; }
 
         /* Estilo de la tabla de previsualización */
         .preview-area { margin-top: 30px; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background-color: #5DE2E7; color: white; padding: 12px; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #ccc;}
-        td { border: 1px solid #ccc; padding: 10px; vertical-align: middle; background-color: #FDF5E6; }
+        
+        /* CAMBIO DE COLORES EN CSS (VISTA WEB) */
+        th { 
+            background-color: #6A1B9A; /* Morado Oscuro */
+            color: white; 
+            padding: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            border: 1px solid #ccc;
+        }
+        td { 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            vertical-align: middle; 
+            background-color: #F3E5F5; /* Lavanda muy suave */
+        }
+        
         .img-preview { width: 100px; height: auto; display: block; margin: 0 auto; border-radius: 4px; }
     </style>
 
@@ -113,7 +130,6 @@
 
         const imagenBase64 = await leerImagen(inputImg);
 
-        // Guardar datos
         datosParaExcel.push({
             nombre: nombre,
             valoracion: valoracion,
@@ -121,7 +137,6 @@
             imagen: imagenBase64
         });
 
-        // Actualizar Tabla Visual (Orden: Nombre, Foto, Valoración, Resultado)
         const tbody = document.getElementById('cuerpoTabla');
         const nuevaFila = tbody.insertRow();
         
@@ -132,7 +147,6 @@
             <td style="text-align:center; font-weight:bold;">${resultado}</td>
         `;
 
-        // Limpiar campos
         document.getElementById('nombre').value = '';
         document.getElementById('valoracion').value = '';
         document.getElementById('imagenInput').value = '';
@@ -148,51 +162,51 @@
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Pruebas');
 
-        // DEFINICIÓN DE COLUMNAS (NUEVO ORDEN)
-        // 1. Nombre, 2. Imagen, 3. Valoración, 4. Resultado
+        // Definición de columnas
         worksheet.columns = [
             { header: 'NOMBRE DE LA PRUEBA', key: 'nombre', width: 25 },
-            { header: 'IMAGEN', key: 'imagen', width: 25 },           // Columna B
-            { header: 'VALORACIÓN DE LA PRUEBA', key: 'valoracion', width: 50 }, // Columna C
-            { header: 'PRUEBA A COMPAÑEROS', key: 'resultado', width: 25 }       // Columna D
+            { header: 'IMAGEN', key: 'imagen', width: 25 },
+            { header: 'VALORACIÓN DE LA PRUEBA', key: 'valoracion', width: 50 },
+            { header: 'PRUEBA A COMPAÑEROS', key: 'resultado', width: 25 }
         ];
 
-        // Estilar Encabezados
+        // CAMBIO DE COLORES EN EXCEL (JS)
         const headerRow = worksheet.getRow(1);
         headerRow.height = 40;
         headerRow.eachCell((cell) => {
             cell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
-                fgColor: { argb: 'FF5DE2E7' } 
+                fgColor: { argb: 'FF6A1B9A' } // Color Morado Intenso (HEX: 6A1B9A)
             };
             cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
         });
 
-        // Agregar filas
         for (let i = 0; i < datosParaExcel.length; i++) {
             const data = datosParaExcel[i];
             
-            // Mapeo de datos a columnas (clave debe coincidir con worksheet.columns)
             const row = worksheet.addRow({
                 nombre: data.nombre,
-                imagen: '', // Espacio vacío para la foto
+                imagen: '',
                 valoracion: data.valoracion,
                 resultado: data.resultado
             });
 
             row.height = 100; 
 
-            // Estilos generales de celda
+            // Estilos de filas (Color Lavanda)
             row.eachCell((cell) => {
                 cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFDF5E6' } };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFF3E5F5' } // Color Lavanda Suave (HEX: F3E5F5)
+                };
                 cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             });
 
-            // Insertar Imagen en la Columna 2 (Índice 1)
             if (data.imagen) {
                 const imageId = workbook.addImage({
                     base64: data.imagen,
@@ -200,7 +214,6 @@
                 });
 
                 worksheet.addImage(imageId, {
-                    // Columna 1 = B (0 es A, 1 es B)
                     tl: { col: 1.1, row: row.number - 0.9 }, 
                     br: { col: 1.9, row: row.number - 0.1 },
                     editAs: 'oneCell'
@@ -209,7 +222,7 @@
         }
 
         const buffer = await workbook.xlsx.writeBuffer();
-        saveAs(new Blob([buffer]), "Pruebas_Fisioterapia.xlsx");
+        saveAs(new Blob([buffer]), "Pruebas_Fisioterapia_Morado.xlsx");
     }
 </script>
 
